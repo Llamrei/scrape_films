@@ -1,4 +1,5 @@
 import pickle as pkl
+import sys
 from decimal import Decimal
 from random import random
 from time import sleep
@@ -8,9 +9,10 @@ import numpy as np
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
+
 # https://www.boxofficemojo.com/chart/top_lifetime_gross/?offset=200
 root = "https://www.boxofficemojo.com"
-no_films = 400
+no_films = sys.argv[1] if sys.argv[1] else 400
 
 # Films x (internal_id, title, gross, year, synopsis)
 # Need to let numpy know we are going to be passing more than just numbers
