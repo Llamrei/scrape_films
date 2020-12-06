@@ -55,7 +55,7 @@ try:
             sleep(random() + 1)
             pbar.update(1)
 
-    pkl.dump(results, open("films_and_synopsis.p", "wb"))
+    pkl.dump(results, open(f"complete{no_films}_films_and_synopsis.p", "wb"))
 except KeyboardInterrupt:
     print("\nKeyboardInterrupt: dumping progress")
     pkl.dump(results, open(f"interrupted{offset+idx}_films_and_synopsis.p", "wb"))
