@@ -9,20 +9,30 @@ import numpy as np
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
-
 # https://www.boxofficemojo.com/chart/top_lifetime_gross/?offset=200
 root = "https://www.boxofficemojo.com"
-no_films = sys.argv[1] if sys.argv[1] else 400
+no_films = 400
 
-# Films x (internal_id, title, gross, year, synopsis)
+if len(sys.argv) > 1:
+    no_films = int(sys.argv[1])
+
 # Need to let numpy know we are going to be passing more than just numbers
-results = np.zeros([no_films, 5], dtype="<U11")
-step = 200
+results = np.zeros(
+    (no_films,),
+    dtype=[
+        ("id", "int"),
+        ("title", "U100"),
+        ("gross", "float"),
+        ("year", "int"),
+        ("synopsis", "U1000"),
+    ],
+)
+step = 5
 
 print(f"Beginning scrape for {no_films} films")
 pbar = tqdm(total=no_films)
 try:
-    for offset in np.arange(0, len(results) + step, step):
+    for offset in np.arange(0, len(results), step):
         main_list = BeautifulSoup(
             urlopen(f"{root}/chart/top_lifetime_gross/?offset={offset}")
             .read()
@@ -30,6 +40,9 @@ try:
             "html.parser",
         )
         for idx, row in enumerate(main_list.find_all("tr")[1:]):
+            step = idx + offset
+            if step >= no_films:
+                break
             try:
                 entries = row.find_all("td")
                 rank = entries[0].text
@@ -51,17 +64,23 @@ try:
                     .contents
                 )[0]
 
-                results[offset + idx] = (rank, title, gross, year, synopsis)
+                results[step][0] = rank
+                results[step][1] = title
+                results[step][2] = gross
+                results[step][3] = year
+                results[step][4] = synopsis
             except AttributeError:
-                print(
-                    f"\nFailed to retrieve attributes for item {offset+idx} - skipping"
-                )
+                print(f"\nFailed to retrieve attributes for item {step} - skipping")
             sleep(random() + 1)
             pbar.update(1)
 
     pkl.dump(results, open(f"complete{no_films}_films_and_synopsis.p", "wb"))
 except KeyboardInterrupt:
     print("\nKeyboardInterrupt: dumping progress")
-    pkl.dump(results, open(f"interrupted{offset+idx}_films_and_synopsis.p", "wb"))
+    # Not including latest attempt as we broke it
+    pkl.dump(
+        results[:step],
+        open(f"interrupted{step}_films_and_synopsis.p", "wb"),
+    )
 
 pbar.close()
