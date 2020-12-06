@@ -32,11 +32,13 @@ try:
         for idx, row in enumerate(main_list.find_all("tr")[1:]):
             try:
                 entries = row.find_all("td")
-                rank = entries[0].contents[0]
-                title = entries[1].a.contents[0]
-                gross = Decimal(entries[2].contents[0][1:].replace(",", ""))
-                year = entries[3].a.contents[0]
-
+                rank = entries[0].text
+                title = entries[1].a.text
+                gross = Decimal(entries[2].text[1:].replace(",", ""))
+                try:
+                    year = entries[3].a.text
+                except AttributeError:
+                    year = entries[3].text
                 synopsis_link = entries[1].a["href"]
                 synopsis_soup = BeautifulSoup(
                     urlopen(f"{root}{synopsis_link}").read().decode("UTF-8"),
