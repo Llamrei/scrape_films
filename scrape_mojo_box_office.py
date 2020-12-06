@@ -27,12 +27,13 @@ results = np.zeros(
         ("synopsis", "U1000"),
     ],
 )
-step = 5
+offset_step = 200
+step = 0
 
 print(f"Beginning scrape for {no_films} films")
 pbar = tqdm(total=no_films)
 try:
-    for offset in np.arange(0, len(results), step):
+    for offset in np.arange(0, len(results), offset_step):
         main_list = BeautifulSoup(
             urlopen(f"{root}/chart/top_lifetime_gross/?offset={offset}")
             .read()
@@ -73,7 +74,9 @@ try:
                 print(f"\nFailed to retrieve attributes for item {step} - skipping")
             sleep(random() + 1)
             pbar.update(1)
-
+        if (offset) % 1000 == 0 and offset != 0:
+            # Save every 1000 entries
+            pkl.dump(results[:step], open(f"temp_films_and_synopsis.p", "wb"))
     pkl.dump(results, open(f"complete{no_films}_films_and_synopsis.p", "wb"))
 except KeyboardInterrupt:
     print("\nKeyboardInterrupt: dumping progress")
