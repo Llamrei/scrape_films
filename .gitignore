@@ -1,3 +1,9 @@
+# Python junk
 venv
-.vscode
 *.p
+
+# vscode junk
+.vscode
+
+# PBS junk
+submit.sh
