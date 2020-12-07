@@ -67,7 +67,7 @@ for filename in recently_modified:
             start = len(temp_data)
             films_to_scrape = no_films - start
             print(f"Loading in {start} previously retrieved results")
-            results[:start] = pkl.load(open(interrupted_file, "rb"))
+            results[:start] = pkl.load(open(temp_file, "rb"))
             starting_string = f"Retrieving remaining {films_to_scrape}"
 
 # Pagination size - corerpsonds to the size 200 lists they have on website
@@ -130,9 +130,10 @@ try:
             # To not bombard the server [1,2) second uniformly random delay
             pbar.update(1)
             sleep(random() + 1)
-        if (offset) % 1000 == 0 and offset != 0:
-            # Save every 1000 entries
-            pkl.dump(results[:step], open(, "wb"))
+        # Save every 1000 entries - we just added `offset_step` entries to `offset`
+        # meaning we have `offset_step+offset` entries
+        if (offset + offset_step) % 1000 == 0 and offset != 0:
+            pkl.dump(results[:step], open(TEMP_SAVE_STR, "wb"))
     pkl.dump(results, open(f"complete{no_films}_films_and_synopsis.pickle", "wb"))
 except (Exception, KeyboardInterrupt) as e:
     print(f"\n Error: dumping progress up to step {step}")
