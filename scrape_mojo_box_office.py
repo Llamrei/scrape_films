@@ -44,7 +44,7 @@ for filename in recently_modified:
     if filename.endswith(".pickle"):
         res = re.match(interrupted_pattern, filename)
         if res:
-            print(f"Found previously interrupted scrape")
+            print(f"Found previously interrupted scrape: {filename}")
             interrupted_file = filename
             start = int(res[1])
             films_to_scrape = no_films - start
@@ -53,6 +53,7 @@ for filename in recently_modified:
             starting_string = f"Retrieving remaining {films_to_scrape}"
             break
 
+# Pagination size - corerpsonds to the size 200 lists they have on website
 offset_step = 200
 
 init_offset = int(start / offset_step) * offset_step
@@ -70,11 +71,12 @@ try:
             "html.parser",
         )
         if first_page:
-            init_idx = first_init_idx + 1  # to ignore header
+            init_idx = first_init_idx
             first_page = False
         else:
-            init_idx = 1
-        for idx, row in enumerate(main_list.find_all("tr")[init_idx:], init_idx):
+            init_idx = 0
+        # Add one in scan to remove header
+        for idx, row in enumerate(main_list.find_all("tr")[init_idx + 1 :], init_idx):
             step = idx + offset
             if step >= no_films:
                 break
@@ -105,15 +107,17 @@ try:
                 results[step][3] = year
                 results[step][4] = synopsis
             except AttributeError:
-                print(f"\nFailed to retrieve attributes for item {step} - skipping")
-            sleep(random() + 1)
+                # Step is 0 indexed but ranking is 1 indexed
+                print(f"\nFailed to retrieve attributes for item {step+1} - skipping")
+            # To not bombard the server [1,2) second uniformly random delay
             pbar.update(1)
+            sleep(random() + 1)
         if (offset) % 1000 == 0 and offset != 0:
             # Save every 1000 entries
             pkl.dump(results[:step], open(f"temp_films_and_synopsis.pickle", "wb"))
     pkl.dump(results, open(f"complete{no_films}_films_and_synopsis.pickle", "wb"))
 except (Exception, KeyboardInterrupt) as e:
-    print(f"\n Error: dumping progress up to {step}")
+    print(f"\n Error: dumping progress up to step {step}")
     # Not including latest attempt as we broke it
     pkl.dump(
         results[:step],
