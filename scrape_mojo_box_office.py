@@ -37,9 +37,14 @@ results = np.zeros(
 # For keeping track of where we are through pagination
 step = 0
 
-# Check if there is a file to recover
+# Check if there is a file to recover - preferentially recover interrupted file over
+# temp file
 INTERRUPTED_SAVE_STR = "interrupted{step}from{no_films}_films_and_synopsis.pickle"
 interrupted_pattern = f"interrupted([0-9]*)from{no_films}"
+
+TEMP_SAVE_STR = "temp_films_and_synopsis.pickle"
+temp_pattern = "temp"
+
 recently_modified = sorted(os.listdir(), key=os.path.getmtime, reverse=True)
 for filename in recently_modified:
     if filename.endswith(".pickle"):
@@ -53,6 +58,17 @@ for filename in recently_modified:
             results[:start] = pkl.load(open(interrupted_file, "rb"))
             starting_string = f"Retrieving remaining {films_to_scrape}"
             break
+
+        res = re.match(temp_pattern, filename)
+        if res:
+            print(f"Found previously saved temp file: {filename}")
+            temp_file = filename
+            temp_data = pkl.load(open(temp_file, "rb"))
+            start = len(temp_data)
+            films_to_scrape = no_films - start
+            print(f"Loading in {start} previously retrieved results")
+            results[:start] = pkl.load(open(interrupted_file, "rb"))
+            starting_string = f"Retrieving remaining {films_to_scrape}"
 
 # Pagination size - corerpsonds to the size 200 lists they have on website
 offset_step = 200
@@ -116,7 +132,7 @@ try:
             sleep(random() + 1)
         if (offset) % 1000 == 0 and offset != 0:
             # Save every 1000 entries
-            pkl.dump(results[:step], open(f"temp_films_and_synopsis.pickle", "wb"))
+            pkl.dump(results[:step], open(, "wb"))
     pkl.dump(results, open(f"complete{no_films}_films_and_synopsis.pickle", "wb"))
 except (Exception, KeyboardInterrupt) as e:
     print(f"\n Error: dumping progress up to step {step}")
