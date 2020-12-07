@@ -62,8 +62,8 @@ try:
                     synopsis_soup.find(class_="a-fixed-left-grid-col a-col-right")
                     .find("div")
                     .find("span", class_="a-size-medium")
-                    .contents
-                )[0]
+                    .text
+                )
 
                 results[step][0] = rank
                 results[step][1] = title
