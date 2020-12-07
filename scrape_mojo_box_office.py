@@ -46,7 +46,7 @@ try:
                 break
             try:
                 entries = row.find_all("td")
-                rank = entries[0].text
+                rank = entries[0].text.replace(",", "")
                 title = entries[1].a.text
                 gross = Decimal(entries[2].text[1:].replace(",", ""))
                 try:
@@ -78,12 +78,15 @@ try:
             # Save every 1000 entries
             pkl.dump(results[:step], open(f"temp_films_and_synopsis.p", "wb"))
     pkl.dump(results, open(f"complete{no_films}_films_and_synopsis.p", "wb"))
-except KeyboardInterrupt:
-    print("\nKeyboardInterrupt: dumping progress")
+except Exception as e:
+    print(f"\n Error: dumping progress up to {step}")
     # Not including latest attempt as we broke it
     pkl.dump(
         results[:step],
         open(f"interrupted{step}_films_and_synopsis.p", "wb"),
     )
+    pbar.close()
+    raise e
+
 
 pbar.close()
