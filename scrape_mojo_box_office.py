@@ -16,11 +16,12 @@ from tqdm import tqdm
 root = "https://www.boxofficemojo.com"
 start = 0
 no_films = 400
-films_to_scrape = no_films
-starting_string = f"Beginning scrape for {films_to_scrape} films"
 
 if len(sys.argv) > 1:
     no_films = int(sys.argv[1])
+
+films_to_scrape = no_films
+starting_string = f"Beginning scrape for {films_to_scrape} films"
 
 # Need to let numpy know we are going to be passing more than just numbers
 results = np.zeros(
@@ -78,6 +79,7 @@ try:
         # Add one in scan to remove header
         for idx, row in enumerate(main_list.find_all("tr")[init_idx + 1 :], init_idx):
             step = idx + offset
+            # no_films is 1 indexed, step is 0 indexed
             if step >= no_films:
                 break
             try:
