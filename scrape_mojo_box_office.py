@@ -5,13 +5,19 @@ from random import random
 from time import sleep
 from urllib.request import urlopen
 
+import re
+import os
+
 import numpy as np
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
 # https://www.boxofficemojo.com/chart/top_lifetime_gross/?offset=200
 root = "https://www.boxofficemojo.com"
+start = 0
 no_films = 400
+films_to_scrape = no_films
+starting_string = f"Beginning scrape for {films_to_scrape} films"
 
 if len(sys.argv) > 1:
     no_films = int(sys.argv[1])
@@ -27,20 +33,48 @@ results = np.zeros(
         ("synopsis", "U1000"),
     ],
 )
-offset_step = 200
+# For keeping track of where we are through pagination
 step = 0
 
-print(f"Beginning scrape for {no_films} films")
-pbar = tqdm(total=no_films)
+# Check if there is a file to recover
+INTERRUPTED_SAVE_STR = "interrupted{step}from{no_films}_films_and_synopsis.pickle"
+interrupted_pattern = f"interrupted([0-9]*)from{no_films}"
+recently_modified = sorted(os.listdir(), key=os.path.getmtime, reverse=True)
+for filename in recently_modified:
+    if filename.endswith(".pickle"):
+        res = re.match(interrupted_pattern, filename)
+        if res:
+            print(f"Found previously interrupted scrape")
+            interrupted_file = filename
+            start = int(res[1])
+            films_to_scrape = no_films - start
+            print(f"Loading in {start} previously retrieved results")
+            results[:start] = pkl.load(open(interrupted_file, "rb"))
+            starting_string = f"Retrieving remaining {films_to_scrape}"
+            break
+
+offset_step = 200
+
+init_offset = int(start / offset_step) * offset_step
+first_init_idx = start % offset_step
+
+print(starting_string)
+pbar = tqdm(total=no_films, initial=start)
+first_page = True
 try:
-    for offset in np.arange(0, len(results), offset_step):
+    for offset in np.arange(init_offset, len(results), offset_step):
         main_list = BeautifulSoup(
             urlopen(f"{root}/chart/top_lifetime_gross/?offset={offset}")
             .read()
             .decode("UTF-8"),
             "html.parser",
         )
-        for idx, row in enumerate(main_list.find_all("tr")[1:]):
+        if first_page:
+            init_idx = first_init_idx + 1  # to ignore header
+            first_page = False
+        else:
+            init_idx = 1
+        for idx, row in enumerate(main_list.find_all("tr")[init_idx:], init_idx):
             step = idx + offset
             if step >= no_films:
                 break
@@ -76,14 +110,14 @@ try:
             pbar.update(1)
         if (offset) % 1000 == 0 and offset != 0:
             # Save every 1000 entries
-            pkl.dump(results[:step], open(f"temp_films_and_synopsis.p", "wb"))
-    pkl.dump(results, open(f"complete{no_films}_films_and_synopsis.p", "wb"))
-except Exception as e:
+            pkl.dump(results[:step], open(f"temp_films_and_synopsis.pickle", "wb"))
+    pkl.dump(results, open(f"complete{no_films}_films_and_synopsis.pickle", "wb"))
+except (Exception, KeyboardInterrupt) as e:
     print(f"\n Error: dumping progress up to {step}")
     # Not including latest attempt as we broke it
     pkl.dump(
         results[:step],
-        open(f"interrupted{step}_films_and_synopsis.p", "wb"),
+        open(INTERRUPTED_SAVE_STR.format(step=step, no_films=no_films), "wb"),
     )
     pbar.close()
     raise e

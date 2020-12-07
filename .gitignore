@@ -1,6 +1,7 @@
 # Python junk
 venv
 *.p
+*.pickle
 
 # vscode junk
 .vscode
